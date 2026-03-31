@@ -10,7 +10,7 @@ WorkingDirectory=/opt/e_library
 Environment="ELIBRARY_ROOT=/srv/e_library/library"
 Environment="ELIBRARY_LINK_TTL=300"
 Environment="ELIBRARY_SIGNING_KEY=CHANGE_ME_TO_STRONG_SECRET"
-ExecStart=/opt/e_library/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8000 --workers 2
+ExecStart=/opt/e_library/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8003 --workers 2
 Restart=always
 RestartSec=3
 
