@@ -69,3 +69,12 @@ def test_parse_sidecar_handles_oserror(monkeypatch, tmp_path: Path):
 
     monkeypatch.setattr(Path, "exists", broken_exists, raising=True)
     assert parse_sidecar(book) == {}
+
+
+def test_parse_sidecar_skips_too_long_filename(tmp_path: Path):
+    from app.metadata import parse_sidecar
+
+    long_stem = "а" * 300
+    book = tmp_path / f"{long_stem}.docx"
+    result = parse_sidecar(book)
+    assert result == {}

@@ -6,7 +6,9 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
 
 from .config import settings
 from .models import Book, SearchResponse
@@ -15,6 +17,7 @@ from .search import match_score
 
 app = FastAPI(title="E-Library", version="1.0.0")
 index = LibraryIndex()
+templates = Jinja2Templates(directory="templates")
 
 
 @app.on_event("startup")
@@ -22,14 +25,62 @@ def initial_scan() -> None:
     index.scan(settings.library_root)
 
 
+@app.get("/", response_class=HTMLResponse)
+def home(request: Request, q: str | None = None, direction: str | None = None) -> HTMLResponse:
+    books = index.books
+    if direction:
+        books = [b for b in books if b.direction.lower() == direction.lower()]
+    if q:
+        scored: list[tuple[int, Book]] = []
+        for book in books:
+            score = match_score(q, book.title, book.author, " ".join(book.tags))
+            if score:
+                scored.append((score, book))
+        scored.sort(key=lambda x: x[0], reverse=True)
+        books = [item[1] for item in scored]
+    books.sort(key=lambda b: b.title.lower())
+
+    directions = sorted({b.direction for b in index.books})
+    return templates.TemplateResponse(
+        request,
+        "index.html",
+        {
+            "books": books,
+            "query": q or "",
+            "direction": direction or "",
+            "directions": directions,
+        },
+    )
+
+
+@app.get("/ui/books/{book_id:path}", response_class=HTMLResponse)
+def book_page(request: Request, book_id: str) -> HTMLResponse:
+    item = index.get(book_id)
+    if not item:
+        raise HTTPException(status_code=404, detail="Book not found")
+
+    expires_at = datetime.now(timezone.utc) + timedelta(seconds=settings.dynamic_link_ttl_seconds)
+    signature = _sign(Path(item.path), expires_at)
+    query = urlencode({"book": item.path, "exp": int(expires_at.timestamp()), "sig": signature})
+    return templates.TemplateResponse(
+        request,
+        "book.html",
+        {
+            "book": item,
+            "download_url": f"/download?{query}",
+            "expires_at": expires_at.isoformat(),
+        },
+    )
+
+
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
+
 @app.get("/version")
 def version() -> dict[str, str]:
     return {"version": app.version, "service": "e_library"}
-
 
 
 @app.post("/scan")

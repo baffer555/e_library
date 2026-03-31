@@ -64,3 +64,21 @@ def test_version_endpoint(tmp_path: Path):
     data = resp.json()
     assert data["service"] == "e_library"
     assert data["version"] == "1.0.0"
+
+
+def test_human_ui_home(tmp_path: Path):
+    root = tmp_path / "library"
+    book_path = root / "Информатика" / "Python" / "Книга.pdf"
+    book_path.parent.mkdir(parents=True, exist_ok=True)
+    book_path.write_bytes(b"%PDF-1.4 test")
+
+    from app.main import app, index, settings
+
+    settings.library_root = root
+    index.scan(root)
+
+    client = TestClient(app)
+    resp = client.get("/")
+    assert resp.status_code == 200
+    assert "Электронная библиотека" in resp.text
+    assert "Книга" in resp.text

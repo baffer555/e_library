@@ -34,11 +34,21 @@ def title_from_filename(path: Path) -> tuple[str, str | None]:
 
 def parse_sidecar(path: Path) -> dict:
     sidecar = path.with_suffix(path.suffix + ".json")
+
+    # Linux/ext4 обычно ограничивает имя файла 255 байт, поэтому sidecar
+    # для очень длинных имен может быть заведомо невалидным.
+    if len(sidecar.name.encode("utf-8")) > 240:
+        return {}
+
     try:
         if not sidecar.exists():
             return {}
         return json.loads(sidecar.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
+        if isinstance(exc, OSError) and getattr(exc, "errno", None) == 36:
+            # Шумные File name too long не считаем критической ошибкой.
+            logger.debug("Skipping too-long sidecar path: %s", sidecar)
+            return {}
         logger.warning("Failed to parse sidecar %s: %s", sidecar, exc)
         return {}
 
