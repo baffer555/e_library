@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{{ book.title }}</title>
+  <style>
+    body{font-family:Arial,sans-serif;background:#f5f7fb;margin:0}
+    .wrap{max-width:900px;margin:0 auto;padding:20px}
+    .card{background:#fff;border-radius:12px;padding:16px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .btn{display:inline-block;background:#2563eb;color:#fff;padding:10px 14px;border-radius:8px;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <p><a href="/">← Назад к каталогу</a></p>
+    <div class="card">
+      <h1>{{ book.title }}</h1>
+      <p>Автор: {{ book.author or "—" }}</p>
+      <p>Формат: {{ book.format }}</p>
+      <p>Направление: {{ book.direction }}</p>
+      <p>Программа: {{ book.program }}</p>
+      <p>Ссылка действует до: {{ expires_at }}</p>
+      <p><a class="btn" href="{{ download_url }}">Открыть/скачать</a></p>
+
+      {% if book.media %}
+      <h3>Медиа</h3>
+      <ul>
+        {% for m in book.media %}
+          <li>{{ m.type }} — {{ m.path }}</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+  </div>
+</body>
+</html>

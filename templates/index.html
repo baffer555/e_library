@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Электронная библиотека</title>
+  <style>
+    body {font-family: Arial, sans-serif; margin:0; background:#f5f7fb; color:#1f2937;}
+    .wrap{max-width:1100px;margin:0 auto;padding:20px;}
+    .card{background:#fff;border-radius:12px;padding:16px;margin-bottom:12px;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+    input,select,button{padding:10px;border:1px solid #d1d5db;border-radius:8px}
+    button{background:#2563eb;color:#fff;border:none;cursor:pointer}
+    a{color:#2563eb;text-decoration:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>📚 Электронная библиотека</h1>
+    <form class="filters" method="get" action="/">
+      <input type="text" name="q" placeholder="Поиск по названию/автору" value="{{ query }}" />
+      <select name="direction">
+        <option value="">Все направления</option>
+        {% for d in directions %}
+          <option value="{{ d }}" {% if direction == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+      <button type="submit">Найти</button>
+      <a href="/">Сбросить</a>
+    </form>
+
+    <p>Найдено книг: <b>{{ books|length }}</b></p>
+
+    {% for book in books %}
+      <div class="card">
+        <h3><a href="/ui/books/{{ book.id }}">{{ book.title }}</a></h3>
+        <p>Автор: {{ book.author or "—" }}</p>
+        <p>Направление: {{ book.direction }} | Программа: {{ book.program }} | Формат: {{ book.format }}</p>
+      </div>
+    {% else %}
+      <div class="card">Ничего не найдено.</div>
+    {% endfor %}
+  </div>
+</body>
+</html>
