@@ -34,13 +34,13 @@ def title_from_filename(path: Path) -> tuple[str, str | None]:
 
 def parse_sidecar(path: Path) -> dict:
     sidecar = path.with_suffix(path.suffix + ".json")
-    if sidecar.exists():
-        try:
-            return json.loads(sidecar.read_text(encoding="utf-8"))
-        except (OSError, json.JSONDecodeError) as exc:
-            logger.warning("Failed to parse sidecar %s: %s", sidecar, exc)
+    try:
+        if not sidecar.exists():
             return {}
-    return {}
+        return json.loads(sidecar.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        logger.warning("Failed to parse sidecar %s: %s", sidecar, exc)
+        return {}
 
 
 def extract_pdf_title(path: Path) -> str | None:

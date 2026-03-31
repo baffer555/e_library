@@ -56,3 +56,16 @@ def test_scanner_direction_program_defaults_and_media(tmp_path: Path):
 
     assert books["SingleBook.pdf"].direction == "Общее"
     assert books["SingleBook.pdf"].program == "Базовая программа"
+
+
+def test_parse_sidecar_handles_oserror(monkeypatch, tmp_path: Path):
+    from app.metadata import parse_sidecar
+
+    book = tmp_path / "A.pdf"
+    book.write_bytes(b"%PDF-1.4")
+
+    def broken_exists(self):
+        raise OSError(36, "File name too long")
+
+    monkeypatch.setattr(Path, "exists", broken_exists, raising=True)
+    assert parse_sidecar(book) == {}
