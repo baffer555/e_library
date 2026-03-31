@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from threading import RLock
 
 from .metadata import infer_title_and_author
 from .models import Book, MediaAsset, ScanReport
@@ -16,17 +17,26 @@ class LibraryIndex:
     def __init__(self) -> None:
         self._books: dict[str, Book] = {}
         self._last_scan: ScanReport | None = None
+        self._lock = RLock()
 
     @property
     def books(self) -> list[Book]:
-        return list(self._books.values())
+        with self._lock:
+            return list(self._books.values())
 
     @property
     def last_scan(self) -> ScanReport | None:
-        return self._last_scan
+        with self._lock:
+            return self._last_scan
 
     def get(self, book_id: str) -> Book | None:
-        return self._books.get(book_id)
+        with self._lock:
+            return self._books.get(book_id)
+
+    def clear(self) -> None:
+        with self._lock:
+            self._books = {}
+            self._last_scan = None
 
     def scan(self, root: Path) -> ScanReport:
         root = root.resolve()
@@ -87,12 +97,14 @@ class LibraryIndex:
                 tags=[direction, program, suffix.lstrip(".")],
             )
 
-        self._books = indexed
-        self._last_scan = ScanReport(
+        report = ScanReport(
             root=root,
             scanned_files=scanned,
             indexed_books=len(indexed),
             skipped_files=skipped,
             timestamp=now,
         )
-        return self._last_scan
+        with self._lock:
+            self._books = indexed
+            self._last_scan = report
+            return report
