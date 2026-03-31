@@ -30,6 +30,7 @@ python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 export ELIBRARY_ROOT=/absolute/path/to/library
+export ELIBRARY_SIGNING_KEY=$(openssl rand -hex 32)
 uvicorn app.main:app --reload
 ```
 
@@ -49,3 +50,5 @@ uvicorn app.main:app --reload
 pytest -q
 ```
 
+
+> Рекомендуется явно задать `ELIBRARY_SIGNING_KEY`; иначе будет сгенерирован эфемерный ключ на каждый запуск.

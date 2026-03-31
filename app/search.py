@@ -15,13 +15,49 @@ RUS_STOPWORDS = {
     "или",
 }
 
+SUFFIXES = (
+    "ами",
+    "ями",
+    "ого",
+    "его",
+    "ому",
+    "ему",
+    "иях",
+    "ах",
+    "ях",
+    "ов",
+    "ев",
+    "ий",
+    "ый",
+    "ая",
+    "ое",
+    "ые",
+    "ой",
+    "ых",
+    "ам",
+    "ям",
+    "ом",
+    "ем",
+    "ую",
+    "юю",
+    "а",
+    "я",
+    "ы",
+    "и",
+    "у",
+    "ю",
+    "е",
+    "о",
+)
+
 
 def normalize_token(token: str) -> str:
     token = token.lower().strip()
     token = re.sub(r"[^\wа-яё]", "", token)
-    # Простое усечение русских окончаний для pseudo-морфологии
-    for suffix in ("ами", "ями", "ого", "его", "ому", "ему", "иях", "иях", "ах", "ях", "ов", "ев", "ий", "ый", "ая", "ое", "ые", "ой", "ых", "ам", "ям", "ом", "ем", "ую", "юю", "а", "я", "ы", "и", "у", "ю", "е", "о"):
-        if token.endswith(suffix) and len(token) > len(suffix) + 2:
+    for suffix in SUFFIXES:
+        stem_length = len(token) - len(suffix)
+        min_stem_length = 4 if len(suffix) == 1 else 3
+        if token.endswith(suffix) and stem_length >= min_stem_length:
             token = token[: -len(suffix)]
             break
     return token

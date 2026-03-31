@@ -13,8 +13,9 @@ def test_scan_and_search(monkeypatch, tmp_path: Path):
 
     monkeypatch.setenv("ELIBRARY_ROOT", str(root))
 
-    from app.main import app, index
+    from app.main import app, index, settings
 
+    settings.library_root = root
     index.scan(root)
 
     client = TestClient(app)
@@ -39,8 +40,9 @@ def test_dynamic_link(monkeypatch, tmp_path: Path):
 
     monkeypatch.setenv("ELIBRARY_ROOT", str(root))
 
-    from app.main import app, index
+    from app.main import app, index, settings
 
+    settings.library_root = root
     index.scan(root)
     client = TestClient(app)
     item_id = "Math/Algebra/Linear Algebra.pdf"

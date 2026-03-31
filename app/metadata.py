@@ -1,13 +1,17 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 import zipfile
 from pathlib import Path
 from xml.etree import ElementTree
 
+from defusedxml import ElementTree as DefusedElementTree
+
 TITLE_SPLIT_RE = re.compile(r"[_\-.]+")
 AUTHOR_TITLE_RE = re.compile(r"^(?P<author>[^-]+?)\s*-\s*(?P<title>.+)$")
+logger = logging.getLogger(__name__)
 
 
 def normalize_spaces(text: str) -> str:
@@ -15,16 +19,17 @@ def normalize_spaces(text: str) -> str:
 
 
 def title_from_filename(path: Path) -> tuple[str, str | None]:
-    raw = path.stem
-    raw = TITLE_SPLIT_RE.sub(" ", raw)
-    raw = normalize_spaces(raw)
+    stem = normalize_spaces(path.stem.replace("_", " ").replace(".", " "))
 
-    m = AUTHOR_TITLE_RE.match(raw)
+    m = AUTHOR_TITLE_RE.match(stem)
     if m:
         author = normalize_spaces(m.group("author"))
         title = normalize_spaces(m.group("title"))
         return title, author
-    return raw, None
+
+    fallback = TITLE_SPLIT_RE.sub(" ", path.stem)
+    fallback = normalize_spaces(fallback)
+    return fallback, None
 
 
 def parse_sidecar(path: Path) -> dict:
@@ -32,7 +37,8 @@ def parse_sidecar(path: Path) -> dict:
     if sidecar.exists():
         try:
             return json.loads(sidecar.read_text(encoding="utf-8"))
-        except Exception:
+        except (OSError, json.JSONDecodeError) as exc:
+            logger.warning("Failed to parse sidecar %s: %s", sidecar, exc)
             return {}
     return {}
 
@@ -68,7 +74,7 @@ def extract_epub_title(path: Path) -> str | None:
 
 def extract_fb2_title(path: Path) -> str | None:
     try:
-        tree = ElementTree.parse(path)
+        tree = DefusedElementTree.parse(path)
         root = tree.getroot()
         ns = {"fb2": "http://www.gribuser.ru/xml/fictionbook/2.0"}
         title = root.find(".//fb2:book-title", ns)

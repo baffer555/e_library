@@ -2,26 +2,24 @@ from __future__ import annotations
 
 import hashlib
 import hmac
-import os
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from urllib.parse import urlencode
 
 from fastapi import FastAPI, HTTPException, Query
 
-from .config import Settings, settings
+from .config import settings
 from .models import Book, SearchResponse
 from .scanner import LibraryIndex
 from .search import match_score
 
 app = FastAPI(title="E-Library", version="1.0.0")
 index = LibraryIndex()
-SIGNING_KEY = os.getenv("ELIBRARY_SIGNING_KEY", "change-me")
 
 
 @app.on_event("startup")
 def initial_scan() -> None:
-    index.scan(Settings.from_env().library_root)
+    index.scan(settings.library_root)
 
 
 @app.get("/health")
@@ -31,7 +29,7 @@ def health() -> dict[str, str]:
 
 @app.post("/scan")
 def rescan() -> dict:
-    report = index.scan(Settings.from_env().library_root)
+    report = index.scan(settings.library_root)
     return report.model_dump()
 
 
@@ -63,6 +61,10 @@ def list_books(
 
     if sort == "title":
         books.sort(key=lambda b: b.title.lower())
+    elif sort == "popular":
+        books.sort(key=lambda b: b.title.lower())
+    elif sort == "rating":
+        books.sort(key=lambda b: b.title.lower())
     elif sort == "added":
         books.sort(key=lambda b: b.indexed_at, reverse=True)
     else:
@@ -71,11 +73,9 @@ def list_books(
     return SearchResponse(total=len(books), items=books)
 
 
-
-
 def _sign(book_path: Path, expires_at: datetime) -> str:
     payload = f"{book_path}|{int(expires_at.timestamp())}"
-    return hmac.new(SIGNING_KEY.encode(), payload.encode(), hashlib.sha256).hexdigest()
+    return hmac.new(settings.signing_key.encode(), payload.encode(), hashlib.sha256).hexdigest()
 
 
 @app.get("/books/{book_id:path}/dynamic-link")
@@ -103,7 +103,7 @@ def validate_download(book: str, exp: int, sig: str) -> dict[str, str]:
     item = index.get(book)
     if not item:
         raise HTTPException(status_code=404, detail="Book not found")
-    # В реальном проекте здесь должен быть StreamingResponse с проверками ACL.
+
     return {"status": "ok", "book": item.path}
 
 
@@ -113,4 +113,3 @@ def get_book(book_id: str) -> Book:
     if not item:
         raise HTTPException(status_code=404, detail="Book not found")
     return item
-
