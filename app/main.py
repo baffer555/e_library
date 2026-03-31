@@ -26,6 +26,11 @@ def initial_scan() -> None:
 def health() -> dict[str, str]:
     return {"status": "ok"}
 
+@app.get("/version")
+def version() -> dict[str, str]:
+    return {"version": app.version, "service": "e_library"}
+
+
 
 @app.post("/scan")
 def rescan() -> dict:

@@ -53,3 +53,14 @@ def test_dynamic_link(monkeypatch, tmp_path: Path):
     url = link_resp.json()["url"]
     download = client.get(url)
     assert download.status_code == 200
+
+
+def test_version_endpoint(tmp_path: Path):
+    from app.main import app
+
+    client = TestClient(app)
+    resp = client.get("/version")
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["service"] == "e_library"
+    assert data["version"] == "1.0.0"
